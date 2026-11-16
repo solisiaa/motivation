@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101314">
+<title>Колесо знаний</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#101314;--surface:#171b1c;--line:#2b3232;--ink:#f0f1e9;--muted:#a9b2ad;--lime:#d5f887;--mono:"IBM Plex Mono",monospace}
+*{box-sizing:border-box} [hidden]{display:none!important}
+body{margin:0;background:radial-gradient(ellipse at 30% 27%,#1c2420 0,transparent 42%),var(--bg);color:var(--ink);font-family:"Golos Text",system-ui,sans-serif;min-height:100vh}
+button,input,select,textarea{font:inherit} button,a{touch-action:manipulation} button{cursor:pointer} button:disabled{cursor:default;opacity:.48} a{color:var(--lime)} :focus-visible{outline:2px solid var(--lime);outline-offset:4px}
+.wrap{width:min(1140px,calc(100% - 64px));margin:auto}
+header .wrap{min-height:79px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:16px}
+.brand-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--lime);color:#222b18;font-size:25px;line-height:1}
+nav{display:flex;gap:8px;flex-wrap:wrap}
+.ghost,.primary{min-height:42px;padding:9px 15px;border-radius:8px;font-weight:600;line-height:1.3}
+.ghost{background:#1b2020;border:1px solid #343d3b;color:var(--ink)} .ghost:hover:not(:disabled){background:#292f2d}
+.primary{border:1px solid transparent;background:var(--lime);color:#1b2613} .primary:hover:not(:disabled){background:#e5ffa9}
+main{padding:44px 0 25px}
+.panel{border:1px solid var(--line);border-radius:25px;overflow:hidden;display:grid;grid-template-columns:minmax(0,1.16fr) minmax(0,1fr);min-height:590px;background:var(--surface)}
+.wheel-side{position:relative;display:grid;place-items:center;min-width:0;padding:36px 28px;background:radial-gradient(circle at center,#27342a 0%,#1a211e 42%,transparent 72%),radial-gradient(circle,#52605966 1px,transparent 1px) 0 0/19px 19px,#141918;border-right:1px solid var(--line)}
+.wheel-shell{position:relative;width:min(100%,510px);aspect-ratio:1}
+canvas{width:100%;height:100%;display:block}
+.pointer{position:absolute;inset:1.4% auto auto 50%;transform:translateX(-50%);width:24px;height:31px;background:#f2ffd5;clip-path:polygon(0 0,100% 0,50% 100%);filter:drop-shadow(0 1px 5px black)}
+.wheel-hub{position:absolute;top:50%;left:50%;width:14%;aspect-ratio:1;transform:translate(-50%,-50%);display:grid;place-items:center;border:1px solid #c5ec8d;border-radius:50%;background:#18221b;color:var(--lime);font-size:clamp(20px,4vw,44px);box-shadow:0 0 0 6px #111613ba;pointer-events:none}
+.details{padding:clamp(28px,4vw,54px);display:flex;flex-direction:column;justify-content:center;min-width:0}
+.kicker,.metric,.topic-cat,.footer{font-family:var(--mono);font-size:12px;letter-spacing:.05em}
+.kicker{color:var(--lime);display:flex;align-items:center;gap:9px;margin:0 0 16px}
+.kicker::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--lime);box-shadow:0 0 15px #d5f8889e}
+h1{font-size:clamp(43px,6vw,81px);font-weight:800;letter-spacing:-.075em;line-height:.97;margin:0 0 18px}
+.lead,.topic p,.hint{color:var(--muted);line-height:1.6;margin:0}
+.lead{max-width:32ch}
+.spin{width:100%;min-height:55px;margin-top:24px;display:flex;justify-content:center;align-items:center;gap:10px;font-size:17px}
+.progress{margin-top:24px;border-top:1px solid var(--line);padding-top:18px}
+.metric{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px;color:var(--muted)}
+.metric span:last-child{color:var(--lime)}
+progress{display:block;appearance:none;width:100%;height:6px;border:none;border-radius:8px;overflow:hidden;background:#303a36}
+progress::-webkit-progress-bar{background:#303a36} progress::-webkit-progress-value{background:var(--lime)} progress::-moz-progress-bar{background:var(--lime)}
+.topic{padding:17px;margin-top:20px;background:#202624;border:1px solid #39433d;border-left:3px solid var(--accent,var(--lime));border-radius:12px;animation:appear .3s both;overflow-wrap:anywhere}
+.topic h2{font-size:22px;line-height:1.2;margin:7px 0 8px}
+.topic-cat{color:var(--accent,var(--lime))}
+.topic p{font-size:14px}
+.topic a{display:inline-block;margin-top:10px;font-size:14px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;color:var(--muted);padding:16px 2px}
+.link-button{border:0;background:none;color:var(--muted);text-decoration:underline;text-underline-offset:4px;padding:5px 0}
+dialog{width:min(550px,calc(100% - 26px));max-height:85dvh;padding:25px;background:#191e1d;border:1px solid #415045;border-radius:16px;color:var(--ink)}
+dialog::backdrop{background:#040605b5;backdrop-filter:blur(4px)}
+.dialog-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}
+.dialog-head h2{margin:0;font-size:25px}
+label{display:block;margin-bottom:14px}
+input,select,textarea{display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #465149;border-radius:7px;background:#101614;color:var(--ink)}
+textarea{resize:vertical}
+ul{list-style:none;padding:0;margin:0}
+li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+li div{min-width:0;overflow-wrap:anywhere} li small{display:block;color:var(--muted);margin-top:4px} li button{flex-shrink:0}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;clip-path:inset(50%);overflow:hidden;white-space:nowrap}
+#confetti{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:2}
+.spark{position:absolute;left:var(--x);top:var(--y);width:6px;height:9px;background:var(--color);border-radius:2px;animation:scatter 1s ease-out both}
+@keyframes scatter{from{transform:translate(-50%,-50%);opacity:1}to{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
+@keyframes appear{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(max-width:760px){.wrap{width:calc(100% - 32px)}main{padding-top:20px}.panel{grid-template-columns:1fr}.wheel-side{border-right:0;border-bottom:1px solid var(--line);padding:16px}.wheel-shell{width:min(100%,410px)}.details{padding:24px}.details h1 br{display:none}}
+@media(max-width:450px){header .wrap{min-height:64px;flex-wrap:wrap;padding:12px 0}nav{width:100%}nav button{flex:1}.details h1{font-size:40px}.wheel-side{padding:10px}.ghost{padding-inline:10px}li{align-items:flex-start;flex-direction:column}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand"><span class="brand-icon" aria-hidden="true">✳</span> Колесо знаний</div>
+    <nav aria-label="Управление темами">
+      <button class="ghost" id="open-studied" type="button">Изученные <span id="studied-count">0</span></button>
+      <button class="ghost" id="open-add" type="button">＋ Своя тема</button>
+    </nav>
+  </div>
+</header>
+<main class="wrap">
+  <section class="panel" aria-labelledby="heading">
+    <div class="wheel-side">
+      <div class="wheel-shell">
+        <canvas id="wheel" width="1040" height="1040" role="img" aria-label="Колесо неизученных тем"></canvas>
+        <div class="pointer" aria-hidden="true"></div>
+        <div class="wheel-hub" aria-hidden="true">✳</div>
+      </div>
+    </div>
+    <div class="details">
+      <p class="kicker">ТЕМА ДНЯ</p>
+      <h1 id="heading">Колесо<br> знаний</h1>
+      <p class="lead">Крути колесо и каждый день открывай для себя новую тему.</p>
+      <button class="primary spin" id="spin" type="button"><span aria-hidden="true">⟳</span> Крутить</button>
+      <article class="topic" id="topic" hidden>
+        <div class="topic-cat" id="topic-cat"></div>
+        <h2 id="topic-title"></h2>
+        <p id="topic-description"></p>
+        <a id="topic-link" target="_blank" rel="noopener noreferrer">Узнать больше в Google ↗</a>
+        <div class="actions">
+          <button class="primary" id="mark" type="button">✅ Изучено</button>
+          <button class="ghost" id="share" type="button">Поделиться</button>
+        </div>
+        <p id="share-status" role="status"></p>
+      </article>
+      <article class="topic" id="complete" hidden>
+        <h2>Все темы изучены!</h2>
+        <p>Поздравляем! В колесе больше нет неизученных тем.</p>
+        <div class="actions"><button class="ghost" id="reset" type="button">Сбросить прогресс</button></div>
+      </article>
+      <div class="progress">
+        <div class="metric"><span id="progress-label"></span><span id="percent"></span></div>
+        <progress id="progress" aria-labelledby="progress-label" value="0"></progress>
+      </div>
+      <p class="sr" id="announcement" role="status"></p>
+      <p class="hint" id="storage-status" role="status" hidden></p>
+    </div>
+  </section>
+  <footer class="footer">
+    <span id="available"></span>
+    <button type="button" id="download" class="link-button">Скачать HTML для офлайна</button>
+  </footer>
+</main>
+<dialog id="studied-dialog" aria-labelledby="studied-heading">
+  <div class="dialog-head"><h2 id="studied-heading">Изученные темы</h2><form method="dialog"><button class="ghost">Закрыть</button></form></div>
+  <p class="hint" id="studied-empty">Здесь появятся темы, которые ты отметишь как изученные.</p>
+  <ul id="studied-list"></ul>
+</dialog>
+<dialog id="add-dialog" aria-labelledby="add-heading">
+  <div class="dialog-head"><h2 id="add-heading">Своя тема</h2><form method="dialog"><button class="ghost">Закрыть</button></form></div>
+  <form id="add-form">
+    <label>Название<input name="title" required maxlength="100"></label>
+    <label>Категория<select name="category" id="category-select" required></select></label>
+    <label>Короткое описание<textarea name="description" required maxlength="400" rows="3"></textarea></label>
+    <p class="hint" id="form-status" role="status"></p>
+    <button class="primary" type="submit">Добавить в колесо</button>
+  </form>
+</dialog>
+<div id="confetti" aria-hidden="true"></div>
+<script>
+'use strict';
+
+// Для каждой категории указаны постоянный ключ, подпись и цвет на колесе.
+const categories = {
+  history: ['Всемирная история', '#cc8064'],
+  art: ['Искусство', '#dca170'],
+  perfume: ['Парфюмерия', '#d894aa'],
+  physics: ['Физика', '#7eabca'],
+  music: ['Музыка', '#a89bce'],
+  psychology: ['Психология', '#c1a4d5'],
+  society: ['Мироустройство', '#c8b975'],
+  marketing: ['Маркетинг', '#a8bd76'],
+  ads: ['Реклама', '#dd926c'],
+  architecture: ['Архитектура', '#b7a48e'],
+  brain: ['Нейробиология', '#8dbba5'],
+  food: ['Кулинарные традиции', '#ce9c5c'],
+  philosophy: ['Философия', '#bc8ca1'],
+  astronomy: ['Астрономия', '#8c9ccc'],
+  linguistics: ['Лингвистика', '#c2ba86'],
+  ocean: ['Океанология', '#70b9b6'],
+  plants: ['Ботаника', '#95bd83'],
+  geology: ['Геология', '#ba947d'],
+  math: ['Математика', '#a898bd'],
+  design: ['Дизайн', '#e8a394'],
+  film: ['Кино', '#b4aa97'],
+  maps: ['Картография', '#8abb9d'],
+  animals: ['Поведение животных', '#9eb877'],
+  materials: ['Материаловедение', '#8bafb2'],
+};
+
+// Добавление темы: [уникальный ID, ключ категории, название, описание, запрос для Google].
+// Не меняйте ID существующей темы: по нему восстанавливается история изучения.
+const catalog = [
+ ['rome','history','Почему пал Западный Рим?','Падение западной императорской власти в 476 году было частью долгого распада. Борьба за престол, военное давление и потеря налоговых поступлений усиливали друг друга.','падение Западной Римской империи причины'],
+ ['haiti','history','Как восстание на Гаити изменило карту мира','Восстание порабощённых людей во французской колонии Сен-Доменг привело к независимости Гаити в 1804 году. Оно стало вызовом для рабовладельческих держав Атлантики.','Гаитянская революция'],
+ ['printing','history','Почему печатный станок стал информационной революцией','Европейская печать с подвижными литерами ускорила выпуск книг и удешевила тиражирование. Печатные листки помогли быстро распространить идеи Реформации.','Гутенберг печатный станок Реформация'],
+ ['lapis','art','Почему синий цвет стоил так дорого?','Натуральный ультрамарин получали из лазурита, а изготовление пигмента требовало трудоёмкой очистки. Заказчики европейских картин порой отдельно оговаривали использование этого синего.','натуральный ультрамарин лазурит живопись'],
+ ['ukiyoe','art','Как японские гравюры повлияли на Ван Гога','Японские гравюры укиё-э предлагали резкие обрезы композиции, уплощённое пространство и выразительные контуры. Ван Гог даже написал несколько картин по мотивам таких оттисков.','Ван Гог японские гравюры японизм'],
+ ['sfumato','art','Как Леонардо прятал границы лица в дымке','В технике сфумато соседние тона переходят друг в друга без видимой границы. В «Моне Лизе» такие переходы особенно заметны вокруг глаз и рта.','сфумато Леонардо Мона Лиза'],
+ ['chypre','perfume','Что делает аромат шипром?','Классический шипровый аккорд строится на контрасте свежего бергамота, лабданума и дубового мха. Аромат Chypre Франсуа Коти закрепил название этого семейства.','шипровые ароматы Coty Chypre'],
+ ['aldehydes','perfume','Почему альдегиды пахнут по-разному?','Альдегиды — класс соединений, а впечатление зависит от конкретной молекулы. Одни напоминают цитрус, другие дают мыльный или восковой оттенок.','парфюмерные альдегиды запах'],
+ ['ambergris','perfume','Что общего у кашалота и старинных духов?','Серая амбра образуется в пищеварительной системе кашалота. Особенности её запаха вдохновили парфюмеров на использование веществ вроде амброксида.','серая амбра амброксид парфюмерия'],
+ ['rainbow','physics','Почему радуга всегда на одной стороне неба?','Свет преломляется и отражается внутри дождевых капель. Первичная радуга образует дугу вокруг точки, расположенной напротив Солнца.','первичная радуга антисолярная точка'],
+ ['gps','physics','Что случится с GPS без теории относительности?','Часы на спутниках идут с другой скоростью из-за движения и более слабой гравитации. Без поправок ошибки определения координат быстро накапливались бы.','GPS релятивистские поправки время'],
+ ['ice','physics','Почему лёд плавает в стакане?','При замерзании молекулы воды образуют кристаллическую структуру с большими промежутками. Лёд оказывается менее плотным, чем жидкая вода.','почему лёд менее плотный чем вода'],
+ ['tuning','music','Зачем фортепиано делит октаву на 12 частей?','Равномерная темперация делит отношение частот октавы на 12 шагов с одинаковым отношением соседних частот. Это позволяет играть во всех тональностях без перенастройки инструмента.','равномерная темперация фортепиано'],
+ ['syncopation','music','Как синкопа заставляет музыку качать?','Синкопа смещает акцент туда, где слушатель обычно его не ожидает. Напряжение между акцентом и пульсом помогает создать характерное ощущение движения.','синкопа музыка примеры'],
+ ['leitmotif','music','Как музыка выдаёт героя до его появления','Лейтмотив связывает узнаваемую музыкальную фразу с персонажем, местом или идеей. Изменения этой фразы могут намекать на развитие сюжета.','лейтмотив музыка кино'],
+ ['spacing','psychology','Почему паузы между повторениями помогают запоминать','Материал часто лучше сохраняется в памяти при повторениях, распределённых во времени. Подходящий интервал зависит от того, как долго пригодятся знания.','эффект распределённого повторения память'],
+ ['anchoring','psychology','Как первая цифра меняет оценку цены?','Эффект якоря возникает, когда начальное число сдвигает последующую оценку. Даже произвольная отправная точка может повлиять на ответ.','эффект якоря психология'],
+ ['change','psychology','Почему мы пропускаем перемены прямо перед глазами?','При зрительном прерывании человек может не заметить даже заметную подмену детали сцены. Это явление называют слепотой к изменениям.','слепота к изменениям эксперимент'],
+ ['containers','society','Как контейнер изменил мировую торговлю','Стандартный контейнер можно переносить целиком между судном, поездом и грузовиком. Это сократило затраты на обработку грузов и изменило логистику производства.','контейнеризация мировая торговля'],
+ ['inflation','society','Как статистики измеряют рост цен?','Индекс потребительских цен показывает, как меняется стоимость выбранной корзины. Вес разных покупок в ней может отличаться от трат конкретной семьи.','индекс потребительских цен корзина'],
+ ['strait','society','Почему узкий Малаккский пролив важен для мира?','Пролив соединяет морские маршруты между Индийским и Тихим океанами. Концентрация движения делает этот проход важным для поставок и торговли.','Малаккский пролив мировая торговля'],
+ ['position','marketing','Почему один бренд кажется «своим»?','Позиционирование задаёт место продукта среди альтернатив с точки зрения аудитории. Оно влияет на то, какую потребность человек связывает с брендом.','позиционирование бренда сегментация'],
+ ['cohort','marketing','Как отличить новых клиентов от вернувшихся?','Когортный анализ группирует клиентов, например, по месяцу первой покупки. Сравнение групп показывает, как удержание меняется с возрастом каждой когорты.','когортный анализ удержание клиентов'],
+ ['jobs','marketing','Зачем покупатель «нанимает» продукт?','Подход Jobs to Be Done предлагает смотреть на обстоятельства и задачу, ради которой человек выбирает продукт. Один и тот же товар может выполнять разные задачи в разных ситуациях.','Jobs to Be Done маркетинг'],
+ ['ab','ads','Как выяснить, какой заголовок работает лучше?','В A/B-тесте аудиторию случайно делят между версиями объявления. Заранее выбранный показатель помогает оценить различие по одному критерию.','A/B тест рекламных объявлений'],
+ ['jingle','ads','Почему рекламный джингл возвращается в голову?','Короткая мелодия с повторяемым ритмом связывает звуковой рисунок с названием или фразой. Самопроизвольное повторение музыкальных фрагментов известно как «ушной червь».','рекламный джингл ушной червь'],
+ ['placement','ads','Как товар становится частью сюжета?','При продакт-плейсменте бренд появляется внутри фильма, игры или шоу. Связь с сюжетом может быть сильнее, если товар используется персонажем.','продакт-плейсмент реклама примеры'],
+ ['gothic','architecture','Как готические соборы выдерживают огромные окна?','Аркбутаны отводят часть бокового распора сводов на внешние опоры. Это позволяет освободить больше пространства стены для витражей.','готика аркбутаны витражи'],
+ ['brutal','architecture','Откуда взялось название «брутализм»?','В истории термина фигурирует французское béton brut, то есть необработанный бетон. Архитектура направления часто оставляет видимыми материалы и конструкцию.','брутализм béton brut происхождение'],
+ ['windtower','architecture','Как охлаждали дома до кондиционеров?','Ветроуловители направляли поток воздуха в здания и помогали организовать вентиляцию. Такие башни сохранились, например, в иранском Йезде.','бадгир ветроуловитель Йезд'],
+ ['maps-brain','brain','Как мозг запоминает дорогу домой?','Клетки места в гиппокампе активируются в определённых участках знакомого пространства. Клетки решётки формируют повторяющийся пространственный рисунок активности.','клетки места клетки решётки навигация мозг'],
+ ['phantom','brain','Как мозг чувствует отсутствующую конечность?','После ампутации ощущения иногда продолжают восприниматься как исходящие из утраченной конечности. К их формированию могут иметь отношение процессы и в нервной системе, и в головном мозге.','фантомная конечность нейробиология'],
+ ['odor','brain','Почему запах может внезапно вернуть воспоминание?','Обонятельные пути связаны с областями, участвующими в эмоциях и памяти. Поэтому знакомый запах способен стать сигналом для извлечения автобиографического воспоминания.','эффект Пруста обоняние память'],
+ ['nixtamal','food','Зачем кукурузу варят в известковой воде?','При никстамализации щёлочная обработка облегчает удаление оболочки и меняет свойства зерна. Из обработанной кукурузы получают тесто для традиционных тортильяс.','никстамализация кукуруза тортильи'],
+ ['koji','food','Как кодзи меняет вкус мисо?','На зерне выращивают плесень кодзи, чьи ферменты расщепляют крахмал и белки. Эти превращения помогают сформировать вкус ферментированной пасты мисо.','кодзи мисо ферменты'],
+ ['injera','food','Почему у ынджеры столько пузырьков?','Тесто для эфиопской лепёшки традиционно готовят из тефа и оставляют бродить. Пузырьки газа образуют пористую поверхность при выпечке.','эфиопская ынджера теф ферментация'],
+ ['theseus','philosophy','Останется ли корабль собой, если заменить все доски?','Корабль Тесея — мысленный эксперимент о тождестве при постепенной замене частей. Ещё труднее выбрать оригинал, если из старых досок собрать второй корабль.','корабль Тесея мысленный эксперимент'],
+ ['rawls','philosophy','Какими были бы правила, если бы никто не знал своего места в обществе?','За «завесой неведения» Джона Ролза участники выбирают принципы устройства общества без знания своего статуса. Задача предлагает отстраниться от личной выгоды.','Ролз завеса неведения'],
+ ['hume','philosophy','Почему вчерашние закономерности не доказывают завтрашние?','Проблема индукции спрашивает, чем обоснован переход от наблюдавшихся случаев к будущим. Юм отмечал, что ссылка на прошлую успешность такого перехода сама опирается на индукцию.','Юм проблема индукции'],
+ ['exoplanet','astronomy','Как увидеть планету по тени звезды?','Когда планета проходит между звездой и наблюдателем, яркость звезды немного снижается. Повторяющиеся провалы помогают оценить период обращения планеты.','транзитный метод экзопланеты'],
+ ['pulsar','astronomy','Почему пульсары похожи на космические маяки?','Быстро вращающаяся нейтронная звезда может испускать направленное излучение. Наблюдатель видит импульс всякий раз, когда луч проходит по направлению к Земле.','пульсар модель маяка'],
+ ['moon','astronomy','Почему Луна всегда смотрит на нас почти одной стороной?','Луна поворачивается вокруг оси за то же время, за которое обходит Землю относительно звёзд. Небольшие видимые качания позволяют со временем увидеть чуть больше половины поверхности.','синхронное вращение либрация Луны'],
+ ['colors','linguistics','По-разному ли языки делят оттенки синего?','В русском «синий» и «голубой» — отдельные основные цветообозначения, а английское blue охватывает оба диапазона. Это различие используют в экспериментах по распознаванию оттенков.','Russian blues цветовые категории эксперимент'],
+ ['grimm','linguistics','Почему у father и «отец» такое далёкое сходство?','Закон Гримма описывает систематический переход ряда согласных в прагерманском. Родство английского father особенно ясно при сравнении с латинским pater.','закон Гримма father pater'],
+ ['evidential','linguistics','Когда грамматика требует пояснить источник сведений?','В ряде языков форма слова или частица обозначает, откуда говорящий знает о событии. Например, увидел ли он его сам или услышал от другого человека.','эвиденциальность языки грамматика'],
+ ['deep','ocean','Что такое морской снег на большой глубине?','Частицы органики медленно опускаются из верхних слоёв океана. Вместе они переносят пищу и углерод в глубоководные экосистемы.','морской снег океан'],
+ ['tides','ocean','Почему приливная волна движется вдоль берега?','Подъём воды зависит от притяжения Луны и Солнца, а форма побережья и глубина моря меняют распространение волны. Поэтому моменты прилива различаются даже у соседних портов.','распространение приливной волны побережье'],
+ ['vents','ocean','Чем питается жизнь там, куда не доходит свет?','У глубоководных гидротермальных источников некоторые микроорганизмы получают энергию из химических реакций. На этом основаны пищевые сети вокруг источников.','гидротермальные источники хемосинтез'],
+ ['orchid','plants','Зачем орхидее притворяться насекомым?','У некоторых орхидей форма и аромат цветка привлекают самцов насекомых, имитируя партнёра. При контакте насекомое переносит пыльцу к другому цветку.','орхидеи офрис половой обман опыление'],
+ ['leaf','plants','Почему листья осенью становятся красными?','С распадом хлорофилла становятся виднее жёлтые и оранжевые пигменты. Красный цвет у многих растений связан с накоплением антоцианов.','осенняя окраска листьев антоцианы'],
+ ['seed','plants','Как семена пережидают неподходящий сезон?','Состояние покоя сдерживает прорастание даже при некоторых подходящих внешних условиях. У разных видов выход из него связан, например, с холодным периодом или изменением оболочки.','покой семян стратификация'],
+ ['plates','geology','Как полосы на морском дне выдали движение материков?','В застывших породах сохраняется направление магнитного поля прошлого. Симметричные полосы по обе стороны срединных хребтов показывают, как образуется и расходится океаническое дно.','магнитные полосы дно океана спрединг'],
+ ['column','geology','Почему лава иногда застывает шестиугольниками?','Остывающая порода сжимается и трескается, формируя столбчатую отдельность. В поперечном сечении колонны часто напоминают многоугольники.','столбчатая отдельность базальт'],
+ ['zircon','geology','Как кристалл циркона хранит возраст породы?','В циркон при росте может встраиваться уран, чей радиоактивный распад образует свинец. Соотношение изотопов даёт оценку времени кристаллизации.','уран свинцовое датирование циркон'],
+ ['birthday','math','Почему в группе из 23 человек часто совпадают дни рождения?','При упрощённой модели с 365 равновероятными датами шанс хотя бы одной совпавшей пары чуть превышает половину. В группе из 23 человек существует 253 разные пары.','парадокс дней рождения 23 человека'],
+ ['monty','math','Стоит ли менять дверь в задаче Монти Холла?','Если ведущий всегда открывает заведомо пустую из двух оставшихся дверей и предлагает обмен, смена двери даёт шанс выигрыша 2/3. Исходный выбор выигрывает с вероятностью 1/3.','парадокс Монти Холла'],
+ ['bridges','math','Как семь мостов привели к теории графов?','Эйлер представил участки суши как вершины, а мосты как рёбра. Количество мостов у каждого участка помогает определить, можно ли пройти по всем рёбрам ровно один раз.','семь мостов Кёнигсберга эйлеров путь'],
+ ['doors','design','Почему некоторые двери так и хочется толкнуть с неверной стороны?','Форма ручки подсказывает действие: за скобу удобно тянуть, а плоскую пластину хочется толкнуть. Когда подсказка конфликтует с механизмом, возникают ошибки.','дверь Нормана аффорданс дизайн'],
+ ['type','design','Почему две надписи одного кегля выглядят по-разному?','У шрифтов различаются высота строчных букв, ширина знаков и пропорции. Поэтому одинаковый кегль может давать разное ощущение размера и плотности.','типографика x-height высота строчных'],
+ ['wayfinding','design','Как аэропорт помогает найти выход без слов?','Пиктограммы, направления и повторяющаяся система обозначений позволяют ориентироваться с меньшей зависимостью от языка. Их расположение особенно важно в точках выбора маршрута.','wayfinding дизайн навигация аэропорт пиктограммы'],
+ ['kuleshov','film','Как один и тот же взгляд становится то грустным, то голодным?','Эффект Кулешова описывает влияние соседнего кадра на интерпретацию выражения лица. Монтаж помогает зрителю самостоятельно связать два изображения.','эффект Кулешова монтаж'],
+ ['foley','film','Почему шаги в кино иногда записывают после съёмки?','Шумовики синхронно с изображением записывают шаги, шорох одежды и звуки предметов. Такой подход даёт контроль над тем, какие детали слышит зритель.','Foley шумовое озвучивание кино'],
+ ['dolly','film','Как эффект «головокружения» меняет фон кадра?','При dolly zoom камера движется, одновременно меняя фокусное расстояние в противоположном направлении. Размер героя в кадре остаётся примерно постоянным, а перспектива фона меняется.','dolly zoom эффект Вертиго'],
+ ['mercator','maps','Почему Гренландия выглядит такой огромной на карте?','Проекция Меркатора сохраняет локальные углы, но растягивает площади по мере удаления от экватора. Из-за этого высокоширотные территории кажутся непропорционально большими.','проекция Меркатора искажение площадей'],
+ ['contour','maps','Как увидеть крутизну склона по линиям на карте?','Горизонталь соединяет точки одинаковой высоты. Чем теснее расположены линии при одной и той же высоте сечения, тем круче склон.','горизонтали топографическая карта крутизна'],
+ ['isochrone','maps','Что показывает карта «30 минут пешком»?','Изохрона очерчивает область, доступную за заданное время от выбранной точки. Её форма зависит от дорожной сети, переходов и препятствий.','изохрона пешеходная доступность карта'],
+ ['bees','animals','Как пчела танцем указывает дорогу к цветам?','Виляющий танец передаёт направление и примерную дальность до источника пищи. На вертикальных сотах угол движения соотносится с положением Солнца.','виляющий танец пчёл фон Фриш'],
+ ['crows','animals','Как вороны достают пищу из узкой щели?','Новокаледонские вороны умеют извлекать добычу с помощью палочек и крючков. Некоторые инструменты птицы заготавливают из веток и листьев.','новокаледонские вороны изготовление орудий'],
+ ['octopus','animals','Как осьминог меняет рисунок кожи за секунды?','Мышцы управляют пигментными мешочками — хроматофорами, меняя их видимый размер. Внешний вид кожи также зависит от структур, отражающих свет.','хроматофоры осьминога изменение окраски'],
+ ['glass','materials','Почему старые окна иногда толще снизу?','Неравномерность старинных стёкол обычно связана с технологиями изготовления и установкой. При комнатной температуре заметное перетекание оконного стекла за века не объясняет эту форму.','старые окна стекло течёт миф'],
+ ['shape-memory','materials','Как металл «вспоминает» свою форму?','Сплавы с памятью формы, например нитинол, могут восстанавливать заданную форму при нагревании. Это связано с обратимым превращением между кристаллическими фазами.','нитинол эффект памяти формы'],
+ ['tempered','materials','Почему закалённое стекло распадается на мелкие кусочки?','Закалка создаёт сжатие у поверхности и растягивающие напряжения внутри. Если трещина достигает внутренней зоны, накопленная энергия ускоряет её распространение.','закалённое стекло внутренние напряжения осколки'],
+].map(([id, category, title, description, query]) => ({id, category, title, description, query}));
+
+const $ = id => document.getElementById(id);
+const offlineHtml = '<!doctype html>\n' + document.documentElement.outerHTML;
+const storageKey = 'knowledge-wheel/v1';
+const motion = matchMedia('(prefers-reduced-motion: reduce)');
+const canvas = $('wheel');
+const ctx = canvas.getContext('2d');
+const tau = 2 * Math.PI;
+let rotation = 0;
+let spinning = false;
+let current = null;
+let state = readState();
+let pool = [];
+
+function readState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    return {
+      studied: new Set(Array.isArray(saved.studied) ? saved.studied : []),
+      custom: Array.isArray(saved.custom) ? saved.custom.filter(item =>
+        item && typeof item.id === 'string' && item.id.startsWith('custom-') &&
+        Object.hasOwn(categories, item.category) && typeof item.title === 'string' &&
+        typeof item.description === 'string' && typeof item.query === 'string') : [],
+    };
+  } catch {
+    $('storage-status').hidden = false;
+    $('storage-status').textContent = 'Не удалось прочитать сохранённый прогресс.';
+    return {studied: new Set(), custom: []};
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify({studied: [...state.studied], custom: state.custom}));
+    $('storage-status').hidden = true;
+  } catch {
+    $('storage-status').hidden = false;
+    $('storage-status').textContent = 'Хранилище недоступно. Изменения действуют до закрытия страницы.';
+  }
+}
+
+function announce(message) {
+  $('announcement').textContent = message;
+}
+
+// Секторы перемежаются по категориям. Каждый сектор — одна тема.
+const categoryIds = Object.keys(categories);
+function interleave(topics) {
+  const groups = new Map(categoryIds.map(key => [key, []]));
+  for (const topic of topics) groups.get(topic.category).push(topic);
+  const rows = [...groups.values()];
+  return Array.from({length: Math.max(...rows.map(row => row.length))},
+    (_, index) => rows.flatMap(row => row[index] ? [row[index]] : [])).flat();
+}
+
+function drawWheel() {
+  const center = canvas.width / 2;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(center, center);
+  function circle(radius, fill, stroke, width = 1) {
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, tau);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.stroke(); }
+  }
+  circle(490, '#19221d', '#46534a', 2);
+  circle(477, null, '#637268', 1);
+  circle(452, '#25312a', '#758778', 2);
+  const step = tau / pool.length;
+  const start = -Math.PI / 2 - step / 2;
+
+  pool.forEach((topic, index) => {
+    const left = start + index * step;
+    const middle = left + step / 2;
+    const color = categories[topic.category][1];
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, 449, left, left + step);
+    ctx.closePath();
+    const shade = ctx.createRadialGradient(0, 0, 65, 0, 0, 449);
+    shade.addColorStop(0, '#242e28');
+    shade.addColorStop(.73, color);
+    shade.addColorStop(1, color);
+    ctx.fillStyle = shade;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#18231e';
+    ctx.stroke();
+
+    ctx.save();
+    ctx.rotate(middle);
+    ctx.fillStyle = '#202721';
+    const fontSize = Math.min(29, 1360 / pool.length);
+    if (fontSize >= 12) {
+      ctx.font = `600 ${fontSize}px monospace`;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(index + 1).padStart(2, '0'), 424, 0);
+    }
+    ctx.restore();
+  });
+
+  for (let i = 0; i < 120; i++) {
+    ctx.save();
+    ctx.rotate(i * tau / 120);
+    ctx.beginPath();
+    ctx.moveTo(i % 5 === 0 ? 463 : 468, 0);
+    ctx.lineTo(474, 0);
+    ctx.lineWidth = i % 5 === 0 ? 3 : 1;
+    ctx.strokeStyle = '#84988a';
+    ctx.stroke();
+    ctx.restore();
+  }
+  circle(451, null, '#b1bb9d', 2);
+  ctx.restore();
+}
+
+function searchUrl(topic) {
+  return 'https://www.google.com/search?q=' + encodeURIComponent(topic.query);
+}
+
+function renderStudied(topics) {
+  const list = $('studied-list');
+  const fragment = document.createDocumentFragment();
+  for (const topic of topics.filter(item => state.studied.has(item.id))) {
+    const li = document.createElement('li');
+    const copy = document.createElement('div');
+    const title = document.createElement('strong');
+    const category = document.createElement('small');
+    const restore = document.createElement('button');
+    title.textContent = topic.title;
+    category.textContent = categories[topic.category][0];
+    restore.textContent = 'Вернуть в колесо';
+    restore.className = 'ghost';
+    restore.type = 'button';
+    restore.addEventListener('click', () => {
+      state.studied.delete(topic.id);
+      current = null;
+      saveState();
+      const index = Array.from(list.children).indexOf(li);
+      render();
+      (list.children[index]?.querySelector('button') ||
+        list.lastElementChild?.querySelector('button') ||
+        $('studied-dialog').querySelector('button')).focus();
+      announce('Тема возвращена в колесо: ' + topic.title);
+    });
+    copy.append(title, category);
+    li.append(copy, restore);
+    fragment.append(li);
+  }
+  list.replaceChildren(fragment);
+  $('studied-empty').hidden = list.childElementCount !== 0;
+}
+
+function updateSpin() {
+  $('spin').disabled = spinning || pool.length === 0;
+  $('open-studied').disabled = spinning;
+  $('open-add').disabled = spinning;
+  $('spin').lastChild.textContent = spinning ? ' Крутится…' : ' Крутить';
+}
+
+function render() {
+  const topics = [...catalog, ...state.custom];
+  pool = interleave(topics.filter(item => !state.studied.has(item.id)));
+  const studied = topics.length - pool.length;
+  const percent = Math.round(studied * 100 / topics.length);
+  $('progress-label').textContent = `Изучено ${studied} из ${topics.length} тем`;
+  $('percent').textContent = percent + '%';
+  $('progress').max = topics.length;
+  $('progress').value = studied;
+  $('studied-count').textContent = studied;
+  $('available').textContent = `Тем в колесе · ${pool.length}`;
+  $('complete').hidden = pool.length > 0;
+  if (current && !pool.some(item => item.id === current.id)) current = null;
+  $('topic').hidden = !current;
+  updateSpin();
+  renderStudied(topics);
+  drawWheel();
+}
+
+function reveal(topic, sector) {
+  current = topic;
+  const [category, color] = categories[topic.category];
+  $('topic').style.setProperty('--accent', color);
+  $('topic-cat').textContent = category + ' · Сектор ' + String(sector + 1).padStart(2, '0');
+  $('topic-title').textContent = topic.title;
+  $('topic-description').textContent = topic.description;
+  $('topic-link').href = searchUrl(topic);
+  $('share-status').textContent = '';
+  $('topic').hidden = false;
+  announce('Выпала тема: ' + topic.title);
+  const titleBounds = $('topic-title').getBoundingClientRect();
+  if (titleBounds.bottom > window.innerHeight) {
+    $('topic').scrollIntoView({block: 'nearest', behavior: motion.matches ? 'instant' : 'smooth'});
+  }
+  celebrate(color);
+}
+
+function celebrate(color) {
+  if (motion.matches) return;
+  const origin = $('topic-title').getBoundingClientRect();
+  const fragment = document.createDocumentFragment();
+  for (let i = 0; i < 24; i++) {
+    const piece = document.createElement('i');
+    piece.className = 'spark';
+    piece.style.setProperty('--x', origin.left + origin.width / 2 + 'px');
+    piece.style.setProperty('--y', origin.top + 'px');
+    piece.style.setProperty('--dx', (Math.random() - .5) * 300 + 'px');
+    piece.style.setProperty('--dy', (Math.random() - .5) * 190 + 'px');
+    piece.style.setProperty('--r', Math.random() * 580 + 'deg');
+    piece.style.setProperty('--color', i % 2 ? color : '#d5f887');
+    fragment.append(piece);
+  }
+  $('confetti').replaceChildren(fragment);
+  setTimeout(() => $('confetti').replaceChildren(), 1100);
+}
+
+const wrapAngle = radians => (radians % tau + tau) % tau;
+$('spin').addEventListener('click', () => {
+  if (spinning || !pool.length) return;
+  current = null;
+  $('topic').hidden = true;
+  spinning = true;
+  updateSpin();
+
+  // Центр первого сектора расположен сверху. Компенсируем текущий угол,
+  // чтобы указатель остановился точно в центре равновероятно выбранного сектора.
+  const index = Math.floor(Math.random() * pool.length);
+  const winner = pool[index];
+  const finalAngle = -index * tau / pool.length;
+  const distance = 5 * tau + wrapAngle(finalAngle - rotation);
+  const from = rotation;
+  const duration = motion.matches ? 0 : 4000;
+  const started = performance.now();
+
+  function frame(now) {
+    const fraction = duration ? Math.min(1, Math.max(0, (now - started) / duration)) : 1;
+    const eased = 1 - (1 - fraction) ** 4;
+    rotation = wrapAngle(from + distance * eased);
+    canvas.style.transform = `rotate(${rotation}rad)`;
+    if (fraction < 1) {
+      requestAnimationFrame(frame);
+      return;
+    }
+    spinning = false;
+    if (syncPending) {
+      syncPending = false;
+      state = readState();
+      render();
+      if (!pool.some(item => item.id === winner.id)) {
+        announce('Список тем обновился. Можно крутить снова.');
+        return;
+      }
+    }
+    updateSpin();
+    const winnerIndex = pool.findIndex(item => item.id === winner.id);
+    rotation = wrapAngle(-winnerIndex * tau / pool.length);
+    canvas.style.transform = `rotate(${rotation}rad)`;
+    reveal(winner, winnerIndex);
+  }
+  requestAnimationFrame(frame);
+});
+
+$('mark').addEventListener('click', () => {
+  if (!current || spinning) return;
+  const title = current.title;
+  state.studied.add(current.id);
+  current = null;
+  saveState();
+  render();
+  (pool.length ? $('spin') : $('reset')).focus();
+  announce(pool.length ? 'Тема изучена: ' + title : 'Поздравляем! Все темы изучены.');
+});
+
+$('reset').addEventListener('click', () => {
+  if (!confirm('Сбросить отметки об изучении? Свои темы сохранятся.')) return;
+  state.studied.clear();
+  saveState();
+  render();
+  $('spin').focus();
+  announce('Прогресс сброшен.');
+});
+
+$('open-studied').addEventListener('click', () => $('studied-dialog').showModal());
+$('open-add').addEventListener('click', () => {
+  $('form-status').textContent = '';
+  $('add-dialog').showModal();
+});
+
+for (const [key, [label]] of Object.entries(categories)) {
+  $('category-select').append(new Option(label, key));
+}
+$('add-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const fields = new FormData(event.currentTarget);
+  const title = fields.get('title').trim();
+  const description = fields.get('description').trim();
+  const category = fields.get('category');
+  if (!title || !description) {
+    $('form-status').textContent = 'Заполни название и описание.';
+    return;
+  }
+  const id = 'custom-' + (globalThis.crypto?.randomUUID?.() || Date.now() + '-' + Math.random().toString(36).slice(2));
+  state.custom.push({id, title, description, category, query: title});
+  current = null;
+  saveState();
+  event.currentTarget.reset();
+  $('add-dialog').close();
+  render();
+  announce('Тема добавлена в колесо: ' + title);
+});
+
+$('share').addEventListener('click', async () => {
+  if (!current) return;
+  const topic = current;
+  const text = `Тема дня · ${topic.title}\n${topic.description}\n${searchUrl(topic)}`;
+  if (navigator.share) {
+    try { await navigator.share({title: 'Колесо знаний', text}); return; }
+    catch (error) { if (error.name === 'AbortError') return; }
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    if (current === topic) $('share-status').textContent = 'Тема скопирована.';
+  } catch {
+    window.prompt('Скопируй тему, чтобы поделиться:', text);
+  }
+});
+
+// Локальная копия самодостаточна. Оформление использует системный шрифт без сети.
+$('download').addEventListener('click', () => {
+  const blob = new Blob([offlineHtml.replace(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]+>\n?/, '')], {type: 'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'index.html';
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+let syncPending = false;
+window.addEventListener('storage', event => {
+  if (event.storageArea !== localStorage || (event.key !== storageKey && event.key !== null)) return;
+  if (spinning) { syncPending = true; return; }
+  state = readState();
+  current = null;
+  render();
+});
+render();
+</script>
+</body>
+</html>
